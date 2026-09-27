@@ -1,0 +1,57 @@
+name: Kunlik target hisobot
+
+on:
+  schedule:
+    # 13:05 UTC = 18:05 Toshkent. GitHub ba'zan kechiktiradi — 19:00 gacha zaxira bor.
+    - cron: "5 13 * * *"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Tarixiy hisobot uchun sana (26.09.2026). Bo'sh = hozirgi holat"
+        required: false
+        default: ""
+
+permissions:
+  contents: write   # faqat 60 kunlik "tirik saqlash" commit'i uchun
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Hisobot tuzish va yuborish
+        env:
+          META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          REPORT_DATE: ${{ inputs.date }}
+        run: |
+          if [ -n "$REPORT_DATE" ]; then python main.py --date "$REPORT_DATE"; else python main.py; fi
+      - name: Xato bo'lsa Telegram'ga ogohlantirish
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            --data-urlencode chat_id="${TELEGRAM_CHAT_ID}" \
+            --data-urlencode text="❗ Target hisobot bugun ishlamadi. Log: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+      - name: Tirik saqlash (public repo'da 60 kun commit bo'lmasa GitHub jadvalni o'chiradi)
+        if: always()
+        run: |
+          last=$(git log -1 --format=%ct)
+          now=$(date +%s)
+          if [ $(( (now - last) / 86400 )) -ge 45 ]; then
+            git config user.name "hisobot-bot"
+            git config user.email "hisobot-bot@users.noreply.github.com"
+            date -u +%FT%TZ > .keepalive
+            git add .keepalive
+            git commit -m "keepalive"
+            git push
+          fi

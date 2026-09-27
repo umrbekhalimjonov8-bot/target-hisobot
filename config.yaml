@@ -1,0 +1,58 @@
+# ============================================================
+#  META ADS HISOBOT — sozlamalar
+#  Har bir target loyiha = bitta "project" bloki.
+# ============================================================
+
+api_version: "v25.0"          # Meta Graph API versiyasi (2026-02-18 dan joriy)
+report_timezone: "Asia/Tashkent"
+
+projects:
+  # result_action — ustuvorlik ro'yxati: har bir reklamada ro'yxatdagi BIRINCHI mavjud tur
+  # natija deb olinadi (turlar qo'shilmaydi — bitta lead bir nechta turda takrorlanadi).
+  #   lead                                   — Lead kampaniyalar (forma / pixel)
+  #   offsite_lead_add_20_s_calls            — CALL kampaniyalar: 20+ soniyali qo'ng'iroq
+  #   onsite_conversion.messaging_conversation_started_7d — yozishma boshlandi
+  # sources — loyiha qaysi kabinet(lar)dan yig'iladi. campaign_contains / exclude_contains —
+  # kampaniya, ad set yoki reklama NOMIDA shu so'z bo'lsa kiradi / chiqadi (katta-kichik harf farqsiz).
+  - name: "Alkafon"
+    sources:
+      - account: "act_1641088980455428"          # alkafon uzb
+        exclude_contains: ["ziyo", "boyeashop", "boyeahshop"]
+    result_action: ["lead", "offsite_lead_add_20_s_calls", "onsite_conversion.messaging_conversation_started_7d"]
+    target_cpl: null
+
+  - name: "Ziyo International"
+    sources:
+      - account: "act_994243406526254"           # ziyo international
+      - account: "act_1641088980455428"          # alkafon kabinetidagi ziyo reklamalari
+        campaign_contains: ["ziyo"]
+    result_action: ["lead", "offsite_lead_add_20_s_calls", "onsite_conversion.messaging_conversation_started_7d"]
+    target_cpl: null
+
+  - name: "Booyeahshop"
+    sources:
+      - account: "act_2365740660615115"          # booyeahshop
+      - account: "act_1641088980455428"          # alkafon kabinetidagi boyeashop reklamasi
+        campaign_contains: ["boyeashop", "boyeahshop"]
+    result_action: ["lead", "offsite_lead_add_20_s_calls", "onsite_conversion.messaging_conversation_started_7d"]
+    target_cpl: null
+
+# ------------------------------------------------------------
+#  SIGNAL QOIDALARI
+#  Diqqat: quyidagi chegaralar — BOSHLANG'ICH GIPOTEZA, sanoat
+#  qonuni emas. O'z natijalaringizga qarab 2–3 haftada moslang.
+# ------------------------------------------------------------
+rules:
+  # Reklama natijasiz shuncha "CPL" sarflasa -> o'chirish taklifi
+  no_result_spend_multiplier: 2.0
+  # CPL loyiha mezonidan shuncha marta qimmat bo'lsa -> ogohlantirish
+  expensive_cpl_multiplier: 1.5
+  # 7 kunlik chastota shundan oshsa -> kreativ charchagan
+  max_frequency: 3.0
+  # CTR oxirgi 3 kun vs oldingi 4 kun shuncha % tushsa -> pasayish
+  ctr_drop_pct: 30
+  # Xulosa chiqarish uchun reklama 7 kunda kamida shuncha natija
+  # yoki (mezon CPL x shu) sarf qilgan bo'lishi kerak — shovqinni kesadi
+  min_results_for_winner: 3
+  # CTR pasayishini baholash uchun har ikki oynada kamida shuncha ko'rsatish
+  min_impressions_for_ctr: 1000
